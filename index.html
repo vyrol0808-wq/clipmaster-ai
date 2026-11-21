@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClipMaster AI — Turn long videos into viral clips</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = { theme: { extend: {
+  colors: { ink: '#0a0a12', panel: '#12121e', card: '#171728', line: 'rgba(255,255,255,0.08)' },
+  fontFamily: { sans: ['Inter','system-ui','sans-serif'] },
+}}};
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  body { background: #0a0a12; color: #e7e7f0; font-family: 'Inter', system-ui, sans-serif; }
+  .grad-text { background: linear-gradient(90deg,#a78bfa,#6366f1,#3b82f6); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .grad-btn { background: linear-gradient(135deg,#7c3aed,#4f46e5 55%,#2563eb); box-shadow: 0 8px 30px rgba(99,102,241,.45); transition: transform .15s, box-shadow .15s; }
+  .grad-btn:hover { transform: translateY(-1px); box-shadow: 0 12px 36px rgba(99,102,241,.55); }
+  .grad-btn:disabled { opacity: .5; transform: none; cursor: not-allowed; }
+  .glass { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); backdrop-filter: blur(14px); }
+  .glass-strong { background: rgba(23,23,40,.85); border: 1px solid rgba(255,255,255,.09); backdrop-filter: blur(16px); }
+  .navlink { transition: all .15s; }
+  .navlink:hover { background: rgba(255,255,255,.06); }
+  .navlink.active { background: linear-gradient(135deg, rgba(124,58,237,.35), rgba(37,99,235,.25)); border-color: rgba(139,92,246,.4); color: #fff; }
+  .pill { transition: all .15s; cursor: pointer; }
+  .pill:hover { border-color: rgba(139,92,246,.6); }
+  .pill.active { background: linear-gradient(135deg,#7c3aed,#2563eb); border-color: transparent; color: #fff; font-weight: 600; }
+  .fade-in { animation: fadeIn .35s ease both; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px);} to { opacity: 1; transform: none;} }
+  .progress-bar { transition: width .5s ease; }
+  .clip-card video { background: #000; }
+  input[type=range] { accent-color: #8b5cf6; }
+  .toggle { width: 44px; height: 24px; border-radius: 999px; background: #2a2a3d; position: relative; cursor: pointer; transition: background .2s; flex: none; }
+  .toggle::after { content:''; position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:#fff; transition: left .2s; }
+  .toggle.on { background: linear-gradient(135deg,#7c3aed,#2563eb); }
+  .toggle.on::after { left: 23px; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #2e2e45; border-radius: 8px; }
+  .spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.25); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg);} }
+  .badge-live { animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1;} 50% { opacity: .45;} }
+</style>
+</head>
+<body class="min-h-screen">
+<div class="flex min-h-screen">
+  <!-- Sidebar -->
+  <aside class="hidden md:flex flex-col w-60 shrink-0 border-r border-white/5 bg-[#0d0d18] px-4 py-6 sticky top-0 h-screen">
+    <div class="flex items-center gap-2.5 px-2">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-blue-600 flex items-center justify-center text-xl font-black">✂</div>
+      <div>
+        <div class="font-extrabold text-lg leading-none">ClipMaster <span class="grad-text">AI</span></div>
+        <div class="text-[11px] text-white/40 mt-0.5">Highlight detection · scene + audio</div>
+      </div>
+    </div>
+    <nav class="mt-8 space-y-1.5 text-sm font-medium text-white/70">
+      <button data-view="dashboard" class="navlink active w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent">📊 Dashboard</button>
+      <button data-view="create" class="navlink w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent">🎬 New Clips</button>
+      <button data-view="live" class="navlink w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent">🔴 Live Stream <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-300">BETA</span></button>
+      <button data-view="projects" class="navlink w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent">🗂 Projects</button>
+      <button data-view="downloads" class="navlink w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent">⬇ Downloads</button>
+    </nav>
+    <div class="mt-auto glass rounded-2xl p-4 text-xs leading-relaxed text-white/60">
+      <div class="font-semibold text-white/90 mb-1">⚖️ Use responsibly</div>
+      Only clip videos you own or are authorized to use. Respect copyright and each platform's terms of service.
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="flex-1 min-w-0 flex flex-col">
+    <header class="sticky top-0 z-30 glass-strong border-b border-white/5 px-4 sm:px-8 py-3.5 flex items-center gap-3">
+      <div class="md:hidden w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-blue-600 flex items-center justify-center font-black">✂</div>
+      <div class="font-bold text-base sm:text-lg">ClipMaster <span class="grad-text">AI</span></div>
+      <div class="ml-auto flex items-center gap-2">
+        <span id="jobBadge" class="hidden text-xs px-3 py-1.5 rounded-full bg-violet-500/20 text-violet-200 border border-violet-400/30"></span>
+        <button onclick="showView('create')" class="grad-btn text-sm font-semibold px-4 py-2 rounded-xl">+ New clips</button>
+      </div>
+      <!-- mobile nav -->
+      <nav class="md:hidden absolute left-0 right-0 top-full bg-[#0d0d18] border-b border-white/5 flex overflow-x-auto text-sm">
+        <button data-view="dashboard" class="navlink active px-4 py-2.5 whitespace-nowrap">📊 Dashboard</button>
+        <button data-view="create" class="navlink px-4 py-2.5 whitespace-nowrap">🎬 New Clips</button>
+        <button data-view="live" class="navlink px-4 py-2.5 whitespace-nowrap">🔴 Live</button>
+        <button data-view="projects" class="navlink px-4 py-2.5 whitespace-nowrap">🗂 Projects</button>
+        <button data-view="downloads" class="navlink px-4 py-2.5 whitespace-nowrap">⬇ Downloads</button>
+      </nav>
+    </header>
+
+    <main class="p-4 sm:p-8 max-w-6xl w-full mx-auto pt-14 md:pt-8">
+      <!-- ============ DASHBOARD ============ -->
+      <section id="view-dashboard" class="view fade-in">
+        <h1 class="text-2xl sm:text-3xl font-extrabold">Good to see you back 👋</h1>
+        <p class="text-white/50 mt-1 text-sm">Paste a video link and let highlight detection do the cutting.</p>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+          <div class="glass rounded-2xl p-5"><div class="text-white/50 text-xs font-semibold uppercase tracking-wide">Total clips</div><div id="statClips" class="text-3xl font-extrabold mt-2">0</div></div>
+          <div class="glass rounded-2xl p-5"><div class="text-white/50 text-xs font-semibold uppercase tracking-wide">Processing now</div><div id="statProcessing" class="text-3xl font-extrabold mt-2">0</div></div>
+          <div class="glass rounded-2xl p-5"><div class="text-white/50 text-xs font-semibold uppercase tracking-wide">Completed clips</div><div id="statDone" class="text-3xl font-extrabold mt-2">0</div></div>
+          <div class="glass rounded-2xl p-5"><div class="text-white/50 text-xs font-semibold uppercase tracking-wide">Downloads</div><div id="statDownloads" class="text-3xl font-extrabold mt-2">0</div></div>
+        </div>
+        <div class="grid lg:grid-cols-2 gap-6 mt-6">
+          <div class="glass rounded-2xl p-5">
+            <div class="flex items-center justify-between"><h2 class="font-bold">Recent projects</h2><button onclick="showView('projects')" class="text-xs text-violet-300 hover:underline">View all →</button></div>
+            <div id="dashProjects" class="mt-4 space-y-2 text-sm"></div>
+          </div>
+          <div class="glass rounded-2xl p-5">
+            <div class="flex items-center justify-between"><h2 class="font-bold">Recent clips</h2><button onclick="showView('projects')" class="text-xs text-violet-300 hover:underline">View all →</button></div>
+            <div id="dashClips" class="mt-4 space-y-2 text-sm"></div>
+          </div>
+        </div>
+        <div class="glass rounded-2xl p-5 mt-6">
+          <h2 class="font-bold">How it works</h2>
+          <div class="grid sm:grid-cols-3 gap-4 mt-4 text-sm text-white/60">
+            <div><div class="text-2xl mb-1">🔗</div><b class="text-white/90">1. Paste a URL</b><br>YouTube or any yt-dlp-supported link — no upload needed.</div>
+            <div><div class="text-2xl mb-1">🧠</div><b class="text-white/90">2. Highlight detection</b><br>Scene changes + audio energy + silence removal find the best moments.</div>
+            <div><div class="text-2xl mb-1">✂️</div><b class="text-white/90">3. Get your clips</b><br>Vertical, square or widescreen clips with optional burned-in subtitles.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ CREATE ============ -->
+      <section id="view-create" class="view hidden fade-in">
+        <h1 class="text-2xl sm:text-3xl font-extrabold">Create clips from a video</h1>
+        <p class="text-white/50 mt-1 text-sm">Paste a public video URL. We download, analyze and cut it on the server — you just pick the settings.</p>
+
+        <div class="glass rounded-2xl p-5 sm:p-6 mt-6">
+          <label class="text-xs font-semibold uppercase tracking-wide text-white/50">Video URL</label>
+          <div class="flex flex-col sm:flex-row gap-3 mt-2">
+            <input id="urlInput" type="url" placeholder="https://www.youtube.com/watch?v=…  or a direct .mp4 link" class="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 text-sm outline-none focus:border-violet-400 placeholder:text-white/30">
+            <button id="fetchBtn" onclick="fetchVideo()" class="grad-btn font-semibold px-6 py-3.5 rounded-xl text-sm whitespace-nowrap">Fetch Video</button>
+          </div>
+          <div id="fetchError" class="hidden mt-3 text-sm text-red-300 bg-red-500/10 border border-red-400/30 rounded-xl px-4 py-3"></div>
+          <div id="fetchLoading" class="hidden mt-3 text-sm text-white/60 flex items-center gap-2"><span class="spinner"></span> Reading video info…</div>
+
+          <div id="videoCard" class="hidden mt-5 flex flex-col sm:flex-row gap-4 bg-black/30 border border-white/10 rounded-2xl p-4">
+            <img id="videoThumb" class="w-full sm:w-56 rounded-xl object-cover bg-black" alt="thumbnail">
+            <div class="min-w-0">
+              <div id="videoTitle" class="font-bold leading-snug"></div>
+              <div id="videoMeta" class="text-sm text-white/50 mt-1"></div>
+              <div id="videoFormats" class="text-xs text-white/40 mt-1"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="settingsCard" class="glass rounded-2xl p-5 sm:p-6 mt-5 hidden">
+          <h2 class="font-bold text-lg">Clip settings</h2>
+          <div class="grid sm:grid-cols-2 gap-6 mt-4">
+            <div>
+              <div class="text-xs font-semibold uppercase tracking-wide text-white/50 mb-2">Clip duration</div>
+              <div class="flex flex-wrap gap-2" id="durPills">
+                <button data-v="15" class="pill px-4 py-2 rounded-full border border-white/15 text-sm">15s</button>
+                <button data-v="30" class="pill active px-4 py-2 rounded-full border border-white/15 text-sm">30s</button>
+                <button data-v="45" class="pill px-4 py-2 rounded-full border border-white/15 text-sm">45s</button>
+                <button data-v="60" class="pill px-4 py-2 rounded-full border border-white/15 text-sm">60s</button>
+                <button data-v="90" class="pill px-4 py-2 rounded-full border border-white/15 text-sm">90s</button>
+              </div>
+              <div class="text-xs font-semibold uppercase tracking-wide text-white/50 mt-5 mb-2">Format</div>
+              <div class="flex flex-wrap gap-2" id="fmtPills">
+                <button data-v="9:16" class="pill active px-4 py-2 rounded-full border border-white/15 text-sm">📱 9:16 Vertical</button>
+                <button data-v="16:9" class="pill px-4 py-2 rounded-full border border-white/15 text-sm">🖥 16:9 Wide</button>
+                <button data-v="1:1" class="pill px-4 py-2 rounded-full border border-white/15 text-sm">⬜ 1:1 Square</button>
+              </div>
+              <div class="text-xs font-semibold uppercase tracking-wide text-white/50 mt-5 mb-2">Quality</div>
+              <div class="flex flex-wrap gap-2" id="qPills">
+                <button data-v="720p" class="pill active px-4 py-2 rounded-full border border-white/15 text-sm">720p</button>
+                <button data-v="1080p" class="pill px-4 py-2 rounded-full border border-white/15 text-sm">1080p</button>
+              </div>
+            </div>
+            <div class="space-y-4">
+              <div class="flex items-center justify-between gap-3">
+                <div><div class="font-medium text-sm">Automatic subtitles</div><div class="text-xs text-white/40">Burns the video's own captions into clips (if available).</div></div>
+                <div id="subToggle" class="toggle on" onclick="toggleSetting('subtitles', this)"></div>
+              </div>
+              <div id="subStyleRow">
+                <div class="text-xs font-semibold uppercase tracking-wide text-white/50 mb-2">Subtitle style</div>
+                <div class="flex gap-2" id="subPills">
+                  <button data-v="white" class="pill active px-4 py-2 rounded-full border border-white/15 text-sm">White · black outline</button>
+                  <button data-v="yellow" class="pill px-4 py-2 rounded-full border border-white/15 text-sm">Bold yellow</button>
+                </div>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <div><div class="font-medium text-sm">AI-generated titles</div><div class="text-xs text-white/40">Titles taken from the spoken lines inside each clip.</div></div>
+                <div id="titleToggle" class="toggle on" onclick="toggleSetting('aiTitles', this)"></div>
+              </div>
+              <div class="text-xs text-white/40 leading-relaxed bg-white/[.03] border border-white/5 rounded-xl p-3">
+                Analysis: <b class="text-white/70">highlight detection (scene changes + audio energy + silence removal)</b>. Up to 5 clips are cut around the highest-scoring moments. Nothing is faked — if a step fails you'll see the real error.
+              </div>
+            </div>
+          </div>
+          <button id="genBtn" onclick="generateClips()" class="grad-btn w-full sm:w-auto mt-6 font-bold px-8 py-3.5 rounded-xl text-sm">⚡ Generate Clips</button>
+        </div>
+
+        <!-- progress -->
+        <div id="progressCard" class="glass rounded-2xl p-5 sm:p-6 mt-5 hidden">
+          <div class="flex items-center justify-between">
+            <div class="font-bold" id="progressStage">Processing…</div>
+            <div class="text-sm text-white/60" id="progressPct">0%</div>
+          </div>
+          <div class="h-2.5 bg-white/10 rounded-full mt-3 overflow-hidden"><div id="progressBar" class="progress-bar h-full rounded-full bg-gradient-to-r from-violet-500 to-blue-500" style="width:0%"></div></div>
+          <div id="progressMsg" class="text-sm text-white/50 mt-2"></div>
+          <div id="jobError" class="hidden mt-3 text-sm text-red-300 bg-red-500/10 border border-red-400/30 rounded-xl px-4 py-3"></div>
+        </div>
+
+        <!-- clips -->
+        <div id="clipsSection" class="mt-6 hidden">
+          <div class="flex items-center justify-between">
+            <h2 class="font-bold text-lg">Your clips <span id="clipsCount" class="text-white/40 text-sm font-medium"></span></h2>
+            <span id="capsNote" class="hidden text-xs text-amber-300 bg-amber-500/10 border border-amber-400/30 rounded-full px-3 py-1">No captions available for this video</span>
+          </div>
+          <div id="clipsGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4"></div>
+        </div>
+      </section>
+
+      <!-- ============ LIVE ============ -->
+      <section id="view-live" class="view hidden fade-in">
+        <h1 class="text-2xl sm:text-3xl font-extrabold flex items-center gap-3">Live Stream Clipping <span class="badge-live text-xs px-2.5 py-1 rounded-full bg-red-500 text-white font-bold">LIVE</span></h1>
+        <p class="text-white/50 mt-1 text-sm">Paste a live stream URL. We capture up to the first 10 minutes broadcast so far, then run the same highlight pipeline on it. If the stream has ended, we use the available VOD instead.</p>
+        <div class="glass rounded-2xl p-5 sm:p-6 mt-6">
+          <label class="text-xs font-semibold uppercase tracking-wide text-white/50">Live stream URL</label>
+          <div class="flex flex-col sm:flex-row gap-3 mt-2">
+            <input id="liveUrlInput" type="url" placeholder="https://www.youtube.com/watch?v=… (live) or a live .m3u8 / stream link" class="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 text-sm outline-none focus:border-red-400 placeholder:text-white/30">
+            <button id="liveBtn" onclick="startLive()" class="font-semibold px-6 py-3.5 rounded-xl text-sm whitespace-nowrap bg-gradient-to-r from-red-500 to-rose-600 shadow-lg shadow-red-500/30 hover:opacity-90">● Capture &amp; Clip</button>
+          </div>
+          <div id="liveError" class="hidden mt-3 text-sm text-red-300 bg-red-500/10 border border-red-400/30 rounded-xl px-4 py-3"></div>
+          <div class="flex flex-wrap gap-2 mt-4 text-xs text-white/50">
+            <span class="px-3 py-1.5 rounded-full border border-white/10">Duration: 30s clips</span>
+            <span class="px-3 py-1.5 rounded-full border border-white/10">Format: 9:16</span>
+            <span class="px-3 py-1.5 rounded-full border border-white/10">Capture cap: 10 min</span>
+          </div>
+        </div>
+        <div id="liveProgress" class="glass rounded-2xl p-5 mt-5 hidden">
+          <div class="flex items-center justify-between"><div class="font-bold" id="liveStage">Capturing…</div><div class="text-sm text-white/60" id="livePct">0%</div></div>
+          <div class="h-2.5 bg-white/10 rounded-full mt-3 overflow-hidden"><div id="liveBar" class="progress-bar h-full rounded-full bg-gradient-to-r from-red-500 to-rose-500" style="width:0%"></div></div>
+          <div id="liveMsg" class="text-sm text-white/50 mt-2"></div>
+        </div>
+        <div id="liveClips" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div>
+      </section>
+
+      <!-- ============ PROJECTS ============ -->
+      <section id="view-projects" class="view hidden fade-in">
+        <h1 class="text-2xl sm:text-3xl font-extrabold">Projects</h1>
+        <p class="text-white/50 mt-1 text-sm">Click a project to reopen its clips and editor.</p>
+        <div id="projectsList" class="mt-6 space-y-3"></div>
+      </section>
+
+      <!-- ============ DOWNLOADS ============ -->
+      <section id="view-downloads" class="view hidden fade-in">
+        <h1 class="text-2xl sm:text-3xl font-extrabold">Download history</h1>
+        <p class="text-white/50 mt-1 text-sm">Every clip download is logged here.</p>
+        <div id="downloadsList" class="mt-6 space-y-2 text-sm"></div>
+      </section>
+
+      <!-- ============ PROJECT DETAIL ============ -->
+      <section id="view-project" class="view hidden fade-in">
+        <button onclick="showView('projects')" class="text-sm text-violet-300 hover:underline">← All projects</button>
+        <h1 id="detailTitle" class="text-2xl font-extrabold mt-2"></h1>
+        <div id="detailMeta" class="text-sm text-white/50 mt-1"></div>
+        <div id="detailClips" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div>
+      </section>
+    </main>
+
+    <footer class="text-center text-xs text-white/30 py-6 px-4">
+      ClipMaster AI · Highlight detection (scene + audio energy) · Only clip videos you own or are authorized to use.
+    </footer>
+  </div>
+</div>
+
+<!-- Editor modal -->
+<div id="editorModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start sm:items-center justify-center p-3 overflow-y-auto">
+  <div class="glass-strong w-full max-w-3xl rounded-3xl p-5 sm:p-6 my-6">
+    <div class="flex items-start justify-between gap-3">
+      <h2 class="font-bold text-lg">Edit clip</h2>
+      <button onclick="closeEditor()" class="text-white/50 hover:text-white text-xl leading-none px-2">✕</button>
+    </div>
+    <div class="grid sm:grid-cols-2 gap-5 mt-4">
+      <video id="editorVideo" controls playsinline class="w-full rounded-2xl bg-black max-h-[420px]"></video>
+      <div class="space-y-4 text-sm">
+        <div>
+          <label class="text-xs font-semibold uppercase tracking-wide text-white/50">Title</label>
+          <input id="editorTitle" class="w-full mt-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 outline-none focus:border-violet-400">
+        </div>
+        <div>
+          <label class="text-xs font-semibold uppercase tracking-wide text-white/50">Trim — <span id="trimLabel"></span></label>
+          <div class="flex gap-2 mt-1">
+            <input id="trimStart" type="number" min="0" step="0.5" class="w-1/2 bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 outline-none">
+            <input id="trimEnd" type="number" min="0" step="0.5" class="w-1/2 bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 outline-none">
+          </div>
+          <input id="trimRange" type="range" min="0" max="100" step="0.5" value="100" class="w-full mt-3">
+          <div class="text-xs text-white/40">Adjust start/end, then "Apply trim" re-cuts the clip server-side from the source video.</div>
+        </div>
+        <div>
+          <label class="text-xs font-semibold uppercase tracking-wide text-white/50">Format</label>
+          <div class="flex gap-2 mt-1" id="editorFmt">
+            <button data-v="9:16" class="pill px-3 py-2 rounded-full border border-white/15 text-xs">9:16</button>
+            <button data-v="16:9" class="pill px-3 py-2 rounded-full border border-white/15 text-xs">16:9</button>
+            <button data-v="1:1" class="pill px-3 py-2 rounded-full border border-white/15 text-xs">1:1</button>
+          </div>
+        </div>
+        <div class="flex items-center justify-between">
+          <span>Subtitles</span>
+          <div id="editorSubToggle" class="toggle" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div id="editorMsg" class="hidden text-xs rounded-xl px-3 py-2"></div>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="saveTitle()" class="grad-btn font-semibold px-4 py-2.5 rounded-xl text-xs">Save title</button>
+          <button onclick="applyTrim()" class="bg-white/10 hover:bg-white/15 font-semibold px-4 py-2.5 rounded-xl text-xs border border-white/10">Apply trim</button>
+          <button onclick="applyFormat()" class="bg-white/10 hover:bg-white/15 font-semibold px-4 py-2.5 rounded-xl text-xs border border-white/10">Apply format</button>
+          <button id="editorDownload" class="bg-emerald-500/80 hover:bg-emerald-500 font-semibold px-4 py-2.5 rounded-xl text-xs">⬇ Download</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>
