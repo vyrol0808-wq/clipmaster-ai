@@ -1,0 +1,21 @@
+{
+  "name": "clipmaster-ai",
+  "version": "1.0.0",
+  "description": "AI-powered video clipping platform — paste a URL, get short clips",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
